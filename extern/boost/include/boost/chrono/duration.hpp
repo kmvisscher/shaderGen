@@ -433,8 +433,12 @@ namespace chrono {
         rep rep_;
     public:
 
+#if  defined   BOOST_NO_CXX11_DEFAULTED_FUNCTIONS
         BOOST_FORCEINLINE BOOST_CONSTEXPR
         duration() : rep_(duration_values<rep>::zero()) { }
+#else
+        BOOST_CONSTEXPR duration() BOOST_NOEXCEPT {};
+#endif
         template <class Rep2>
         BOOST_SYMBOL_VISIBLE BOOST_FORCEINLINE BOOST_CONSTEXPR
         explicit duration(const Rep2& r
@@ -451,14 +455,15 @@ namespace chrono {
                     >
                 >::type* = 0
             ) : rep_(r) { }
-        //~duration() {} //= default;
-//        BOOST_CONSTEXPR        duration(const duration& rhs) : rep_(rhs.rep_) {} // = default;
-        duration& operator=(const duration& rhs) // = default;
+#if  defined   BOOST_NO_CXX11_DEFAULTED_FUNCTIONS
+        duration& operator=(const duration& rhs)
         {
             if (&rhs != this) rep_= rhs.rep_;
             return *this;
         }
-
+#else
+        duration& operator=(const duration& rhs) = default;
+#endif
         // conversions
         template <class Rep2, class Period2>
         BOOST_FORCEINLINE BOOST_CONSTEXPR
@@ -566,9 +571,9 @@ namespace chrono {
     >::type
     operator*(const duration<Rep1, Period>& d, const Rep2& s)
     {
-      typedef typename common_type<Rep1, Rep2>::type CRRRRR;
-      typedef duration<CRRRRR, Period> CD;
-      return CD(CD(d).count()*static_cast<CRRRRR>(s));
+      typedef typename common_type<Rep1, Rep2>::type CR;
+      typedef duration<CR, Period> CD;
+      return CD(CD(d).count()*static_cast<CR>(s));
     }
 
     template <class Rep1, class Period, class Rep2>
@@ -595,10 +600,10 @@ namespace chrono {
     >::type
     operator/(const duration<Rep1, Period>& d, const Rep2& s)
     {
-        typedef typename common_type<Rep1, Rep2>::type CRRRRR;
-        typedef duration<CRRRRR, Period> CD;
+        typedef typename common_type<Rep1, Rep2>::type CR;
+        typedef duration<CR, Period> CD;
 
-      return CD(CD(d).count()/static_cast<CRRRRR>(s));
+      return CD(CD(d).count()/static_cast<CR>(s));
     }
 
     template <class Rep1, class Period1, class Rep2, class Period2>
@@ -620,10 +625,10 @@ namespace chrono {
       >::type
     operator/(const Rep1& s, const duration<Rep2, Period>& d)
     {
-        typedef typename common_type<Rep1, Rep2>::type CRRRRR;
-        typedef duration<CRRRRR, Period> CD;
+        typedef typename common_type<Rep1, Rep2>::type CR;
+        typedef duration<CR, Period> CD;
 
-      return static_cast<CRRRRR>(s)/CD(d).count();
+      return static_cast<CR>(s)/CD(d).count();
     }
     #endif
     // Duration %
@@ -636,10 +641,10 @@ namespace chrono {
     >::type
     operator%(const duration<Rep1, Period>& d, const Rep2& s)
     {
-        typedef typename common_type<Rep1, Rep2>::type CRRRRR;
-        typedef duration<CRRRRR, Period> CD;
+        typedef typename common_type<Rep1, Rep2>::type CR;
+        typedef duration<CR, Period> CD;
 
-      return CD(CD(d).count()%static_cast<CRRRRR>(s));
+      return CD(CD(d).count()%static_cast<CR>(s));
     }
 
     template <class Rep1, class Period1, class Rep2, class Period2>
