@@ -1,0 +1,140 @@
+#ifndef __LIGHTINGHELPER_H__
+#define __LIGHTINGHELPER_H__
+
+#include "shaderIncludes/dataStructures.h"
+#include "shaderIncludes/math.h"
+
+//
+// Dice
+//
+
+float3 F_schlick( in float3 f0, in float3 f90, in float u )
+{
+	//
+    //  F( v, h ) =  F0 + ( 1.0 - F0 ) *  pow( 1.0f - HdotV,  5.0f )
+    //
+    //
+    //  where 
+    //
+    //  F0 = BaseColor * nDotL
+    //
+    //  Dielectric materials always have a range of 0.02 < F0 < 0.05 , use a stock value of 0.04 ( roughly plastics )
+    //
+
+	return f0 + ( f90 - f0 ) * pow( 1.0f - u ,  5.0f );
+}
+
+float Fr_DisneyDiffuse ( float NdotV , float NdotL , float LdotH , float linearRoughness )
+{
+	float energyBias = lerp (0 , 0.5 , linearRoughness );
+	float energyFactor = lerp (1.0 , 1.0 / 1.51 , linearRoughness );
+	float fd90 = energyBias + 2.0 * LdotH * LdotH * linearRoughness ;
+	float3 f0 = float3 ( 1.0f , 1.0f , 1.0f );
+	float lightScatter = F_schlick( f0 , fd90 , NdotL ).r;
+	float viewScatter = F_schlick(f0 , fd90 , NdotV ).r;
+
+	return lightScatter * viewScatter * energyFactor ;
+}
+
+float SmithGGX( float NdotL, float NdotV, float alpha )
+{
+    //
+    // G( L, V, h ) = G( L ) G( V )
+    //
+    //                    nDotL
+    // G( L ) = _________________________
+    //             nDotL ( 1 - k ) + k
+    //
+    //         
+    //                     NdotV
+    // G( V ) = _________________________
+    //             NdotV ( 1 - k ) + k
+    //
+    //
+    //               pow( ( Roughness + 1 ), 2)
+    //  , Where  k = __________________________     ( unreal 4 )
+    //                          8
+    //
+	
+	float alphaSqr = alpha * alpha;
+
+	//float GGX_V = NdotL * sqrt ( ( - NdotV * alphaSqr + NdotV ) * NdotV + alphaSqr );
+	//float GGX_L = NdotV * sqrt ( ( - NdotL * alphaSqr + NdotL ) * NdotL + alphaSqr );
+	
+	float GGX_V = NdotL + sqrt ( ( - NdotV * alphaSqr + NdotV ) * NdotV + alphaSqr );
+	float GGX_L = NdotV + sqrt ( ( - NdotL * alphaSqr + NdotL ) * NdotL + alphaSqr );
+	
+	return rcp( GGX_V + GGX_L ); 
+	//return 0.5f / ( GGX_V + GGX_L ); 
+}
+
+float D_GGX( float NdotH , float alpha )
+{
+    //
+    // or GGX ( disney / unreal 4 )
+    //
+    //  alpha = pow( roughness, 2 );
+    //
+    //                                    pow( alpha, 2 )
+    //  D( h ) = ________________________________________________________________      
+    //           PI pow( pow( NdotH , 2 ) ( pow( alpha, 2 ) - 1 ) + 1 ), 2 )
+    //
+
+	float alphaSqr = alpha*alpha;
+	float f = ( NdotH * alphaSqr - NdotH ) * NdotH + 1;
+	return alphaSqr / ( PI * (f * f) );
+}
+
+//
+// End of Dice
+//
+
+float3 EvalBDRF( in SurfaceParameters surface, in LightParameters light )
+{
+	//
+    //  Microfacet Specular Cook-Torrance
+    //
+    //                D( h ) F( v, h ) G( l, v, h )
+    //    f( l, v ) = ____________________________
+    //                 4 ( dot( n, l ) dot( n, v )
+    //                 
+    //
+
+	float3 L = normalize( light.surfaceTolightDir );
+	float3 V = normalize( -surface.position );
+	float3 H = normalize( L + V );
+	float3 N = surface.normal;
+	
+	float NdotV = abs( dot( N, V ) ) + 1e-5f;
+	float NdotH = saturate( dot( N, H ) );
+	float NdotL = saturate( dot( N, L ) );
+	float LdotH = saturate( dot( L, H ) );
+	
+	float VdotH = saturate( dot( V, H ) );
+
+	if ( NdotL == 0 ) 
+		return float3( 0.0f, 0.0f, 0.0f ); 
+	
+	float alpha = surface.roughness;
+	float visLinAlpha = alpha * alpha;
+	
+	float3 f0 = surface.baseColor;
+	float  metal = surface.metallic;
+	
+	float3 F_conductor= F_schlick( f0, float3( 1.0, 1.0, 1.0 ), VdotH );
+	float3 F_dielec   = F_schlick( float3( 0.04, 0.04, 0.04 ), float3( 1.0, 1.0, 1.0 ), VdotH );
+	float  Vis        = SmithGGX( NdotL, NdotV, visLinAlpha );
+	float  D          = D_GGX( NdotH, visLinAlpha );
+	
+	float3 Fr_dielec    = D * F_dielec * Vis; 
+	float3 Fr_conductor = D * F_conductor * Vis; 
+	
+	float3 Fd = Fr_DisneyDiffuse( NdotV , NdotL , LdotH , visLinAlpha ) / PI ;
+	
+    float3 specular = ( 1.0f - metal ) * Fr_dielec + metal * Fr_conductor;
+	float3 diffuse  = ( 1.0f - metal ) * Fd * f0;
+
+	return ( diffuse + specular ) * NdotL * light.attenuation * light.lightIntensity * light.lightColor;
+}
+
+#endif

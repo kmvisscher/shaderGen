@@ -28,7 +28,7 @@
 
 #include  <stdlib.h>
 
-#ifdef WIN32
+#ifdef _WIN32
 #   include <windows.h>
 #endif
 
@@ -37,7 +37,7 @@ namespace Environment
 
     std::string GetVariable( const std::string &var )
     {
-#ifdef WIN32
+#ifdef _WIN32
         std::string result;
 
         DWORD length = GetEnvironmentVariableA( var.c_str(), 0, 0 );
@@ -58,7 +58,7 @@ namespace Environment
 
     bool SetVariable( const std::string &var, const std::string &value )
     {
-#ifdef WIN32
+#ifdef _WIN32
         return SetEnvironmentVariableA( var.c_str(), value.c_str() ) != 0;
 #else
         return setenv(var.c_str(), value.c_str(), 1) == 0;
@@ -67,7 +67,7 @@ namespace Environment
 
     bool HasVariable( const std::string &var )
     {
-#ifdef WIN32
+#ifdef _WIN32
         DWORD length = GetEnvironmentVariableA( var.c_str(), 0, 0 );
         return length > 0;
 #else

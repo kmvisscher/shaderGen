@@ -16,13 +16,23 @@ public:
         return "ASTHub";
     }
 
-    virtual const std::string &GetNodeName() const override
+    virtual const std::string GetNodeName() const override
     {
         return ConstName();
     }
 
-    ASTHub( ASTDriver *driver, const ASTNodeIndex &index, const U32 &line, const std::string &file ) :
-            ASTNode( driver, index, line, file, ConstType(), ASTDataType::TypeUnknown )
+    virtual bool IsLvalue() const override
+    {
+        return false;
+    }
+
+    virtual bool IsRvalue() const override
+    {
+        return false;
+    }
+
+    ASTHub( ASTDriver *driver, const ASTNodeIndex &index, const U32 &line, const std::string &file, const std::string &hubID ) :
+            ASTNode( driver, index, line, file, ConstType(), hubID, ASTDataType::TypeUnknown )
     {
     }   
 };

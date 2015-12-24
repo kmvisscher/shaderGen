@@ -43,37 +43,36 @@ solution "ShaderGen"
                 
     configuration {}
 
+    --[[
     project "LLVM"
     
         targetname "LLVM"   
         kind "StaticLib"
         
         defines "_GNU_SOURCE"
-        defines "__STDC_CONSTANT_MACROS" 
-        defines "__STDC_FORMAT_MACROS" 
-        defines "__STDC_LIMIT_MACROS"
-
-	configuration "gmake"
-            buildoptions "-std=c++11"
+        defines { "__STDC_CONSTANT_MACROS", 
+       	          "__STDC_FORMAT_MACROS", 
+                  "__STDC_LIMIT_MACROS" }
 
         includedirs {
-            root .. "extern/llvm-3.7/include/"
+            root .. "extern/llvm37/include/"
             }   
         
-        files { 
-            root .. "extern/llvm-3.7/**.h",
-            root .. "extern/llvm-3.7/**.cpp"
+        files {
+            root .. "extern/llvm37/**.h",
+            root .. "extern/llvm37/**.cpp"
             } 
         
-        excludes { 
-            root .. "extern/llvm-3.7/lib/DebugInfo/**.cpp",
-            root .. "extern/llvm-3.7/lib/AsmParser/**.cpp",
-            root .. "extern/llvm-3.7/lib/ExecutionEngine/**.cpp",
-            root .. "extern/llvm-3.7/lib/Fuzzer/**.cpp",
-            root .. "extern/llvm-3.7/lib/Target/**.cpp",
-            root .. "extern/llvm-3.7/tools/**.cpp",
-            root .. "extern/llvm-3.7/utils/**.cpp"
-            }  
+        --excludes { 
+         --   root .. "extern/llvm37/lib/DebugInfo/**.cpp",
+          --  root .. "extern/llvm37/lib/AsmParser/**.cpp",
+           -- root .. "extern/llvm37/lib/ExecutionEngine/**.cpp",
+           -- root .. "extern/llvm37/lib/Fuzzer/**.cpp",
+           -- root .. "extern/llvm37/lib/Target/**.cpp",
+           -- root .. "extern/llvm37/tools/**.cpp",
+           -- root .. "extern/llvm37/utils/**.cpp"
+           -- }  
+    --]]
 
     project "Boost"
     
@@ -95,16 +94,19 @@ solution "ShaderGen"
  
         kind "ConsoleApp"
         flags "WinMain"
-        links "LLVM"
+        --links "LLVM"
 	links "Boost"
 
         warnings "Extra"
         
+	defines { "BOOST_ALL_NO_LIB",
+		  "_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS" } 
+
         includedirs {
             root .. "shaderGen/source/",
             root .. "shaderGen/include/",
             
-            root .. "extern/llvm-3.7/include/",
+            root .. "extern/llvm-37/include/",
      
             root .. "extern/boost/include/" 
             }   

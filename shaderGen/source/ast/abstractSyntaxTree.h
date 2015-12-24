@@ -14,61 +14,74 @@ class ASTDriver
 {
 public:
 
-    template< class T >
-    ASTNode * Create()
+    ASTDriver() : mNodeAdvance(0)
     {
-        ASTNode *result = new T( this, GenIndex() );
-        mAllocedNodes.emplace_back( result );
+
+    }
+
+    template< class T >
+    T * Create()
+    {
+        T *result = new T( this, GenIndex() );
+        Init(result);
         return result;
     }
 
     template< class T, class D0 >
-    ASTNode * Create( const D0 &d0 )
+    T * Create( const D0 &d0 )
     {
-        ASTNode *result = new T( this, GenIndex(), d0 );
-        mAllocedNodes.emplace_back( result );
+        T *result = new T( this, GenIndex(), d0 );
+        Init(result);
         return result;
     }
         
     template< class T, class D0, class D1 >
-    ASTNode * Create( const D0 &d0, const D1 &d1  )
+    T * Create( const D0 &d0, const D1 &d1  )
     {
-        ASTNode *result = new T( this, GenIndex(), d0, d1 );
-        mAllocedNodes.emplace_back( result );
+        T *result = new T( this, GenIndex(), d0, d1 );
+        Init(result);
         return result;
     }
         
     template< class T, class D0, class D1, class D2 >
-    ASTNode * Create( const D0 &d0, const D1 &d1, const D2 &d2  )
+    T * Create( const D0 &d0, const D1 &d1, const D2 &d2  )
     {
-        ASTNode *result = new T( this, GenIndex(), d0, d1, d2 );
-        mAllocedNodes.emplace_back( result );
+        T *result = new T( this, GenIndex(), d0, d1, d2 );
+        Init(result);
         return result;
     }
 
     template< class T, class D0, class D1, class D2, class D3 >
-    ASTNode * Create( const D0 &d0, const D1 &d1, const D2 &d2, const D3 &d3  )
+    T * Create( const D0 &d0, const D1 &d1, const D2 &d2, const D3 &d3  )
     {
-        ASTNode *result = new T( this, GenIndex(), d0, d1, d2, d3 );
-        mAllocedNodes.emplace_back( result );
+        T *result = new T( this, GenIndex(), d0, d1, d2, d3 );
+        Init(result);
         return result;
     }
         
     template< class T, class D0, class D1, class D2, class D3, class D4 >
-    ASTNode * Create( const D0 &d0, const D1 &d1, const D2 &d2, const D3 &d3, const D4 &d4  )
+    T * Create( const D0 &d0, const D1 &d1, const D2 &d2, const D3 &d3, const D4 &d4  )
     {
-        ASTNode *result = new T( this, GenIndex(), d0, d1, d2, d3, d4 );
-        mAllocedNodes.emplace_back( result );
+        T *result = new T( this, GenIndex(), d0, d1, d2, d3, d4 );
+        Init(result);
         return result;
     }
    
 private:
 
-    size_t GenIndex() const
+    template< class T >
+    void Init(T *result)
     {
-        return mAllocedNodes.size();
+        mAllocedNodes.emplace_back(result);
+    }
+
+    size_t GenIndex() 
+    {
+        return mNodeAdvance++;
     }
     
+    size_t mNodeAdvance;
+
     std::vector< ASTNode * > mAllocedNodes;
 };
 

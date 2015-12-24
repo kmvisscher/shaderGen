@@ -29,7 +29,7 @@
 #include "common/path.h"
 #include "common/util.h"
 
-#ifdef WIN32
+#ifdef _WIN32
 #   include <windows.h>
 #elif __APPLE__
 #   include <mach-o/dyld.h>
@@ -242,7 +242,7 @@ namespace Path
 
     std::string GetExeFile()
     {
-#ifdef WIN32
+#ifdef _WIN32
         char result[ MAX_PATH ];
         return Canonical( std::string( result, GetModuleFileNameA( NULL, result, MAX_PATH ) ) );
 #elif LINUX
@@ -266,7 +266,7 @@ namespace Path
 
     std::string GetDataDirectory()
     {
-#ifdef WIN32
+#ifdef _WIN32
         return FixStyle( Environment::GetVariable( "APPDATA" ) );
 #elif LINUX
         return getenv( "XDG_DATA_HOME" );
@@ -277,7 +277,7 @@ namespace Path
 
     std::string GetSharedDataDirectory()
     {
-#ifdef WIN32
+#ifdef _WIN32
         return FixStyle( Environment::GetVariable( "PROGRAMDATA" ) );
 #elif LINUX
         return "/var/games/"
