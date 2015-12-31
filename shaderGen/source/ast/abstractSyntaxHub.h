@@ -2,16 +2,18 @@
 #ifndef __AST_HUB_H__
 #define __AST_HUB_H__
 
+#include "ast/abstractSyntaxNode.h"
+
 class ASTHub : public ASTNode
 {
 public:
 
-    static ASTNodeType ConstType() 
+    static ASTNodeType ConstType()
     {
         return ASTNodeType::OpConnector;
     }
 
-    static std::string ConstName() 
+    static std::string ConstName()
     {
         return "ASTHub";
     }
@@ -31,10 +33,11 @@ public:
         return false;
     }
 
-    ASTHub( ASTDriver *driver, const ASTNodeIndex &index, const U32 &line, const std::string &file, const std::string &hubID ) :
-            ASTNode( driver, index, line, file, ConstType(), hubID, ASTDataType::TypeUnknown )
+    ASTHub( ASTDriver *driver, const ASTNodeIndex &index, const U32 &line, const std::string &file,
+            const std::string &hubID ) :
+        ASTNode( driver, index, line, file, ConstType(), hubID, ASTDataType::TypeUnknown )
     {
-    }   
+    }
 };
 
 

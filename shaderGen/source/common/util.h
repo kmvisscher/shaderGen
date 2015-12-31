@@ -246,6 +246,8 @@ namespace Util
     template<>
     U64 FromString< U64 >( const std::string &str );
 
+    bool IsNumeric( const std::string &str );
+
     /**
      * Converts a std::wstring to a std::string.
      *
@@ -322,11 +324,11 @@ namespace Util
     /// @}
 
     size_t HashCombine( size_t const &seed, size_t const &val );
-    
+
     std::string FromFlags( const U8  convFlags );
     std::string FromFlags( const U32 convFlags );
     std::string FromFlags( const U64 convFlags );
-    
+
     S32 CountFlags( const U64 convFlags );
 
 };

@@ -11,15 +11,15 @@ class ASTDriver;
 class ASTNode : public ASTSourceCompound
 {
 public:
-    
+
     typedef size_t ASTNodeIndex;
-    
+
     enum ASTNodeType                    // Implemented ?
     {
         OpUnknown,                      // X
         OpConnector,                    // X
         OpDeclaration,                  // X
-        OpLoop,                         // X                 
+        OpLoop,                         // X
         OpLoopMod,                      // X
         OpReturn,                       // X
         OpComparisonOperator,           // X
@@ -31,11 +31,11 @@ public:
         OpTernaryExpression,            // X
         OpTypeCaseExpression,           // X
         OpLiteralExpression             // X
-    }; 
-    
+    };
+
     enum ASTDataType
-    {  
-        TypeUnknown,  
+    {
+        TypeUnknown,
         TypeVoid,
         TypeBool,
         TypeInt32,
@@ -43,12 +43,12 @@ public:
         TypeFloat,
         TypeHalf,
         TypeDouble,
-        TypeComplex           
+        TypeComplex
     };
-    
 
-    virtual ~ASTNode(){}
-    
+
+    virtual ~ASTNode() {}
+
     virtual const std::string GetNodeName() const = 0;
     virtual bool IsLvalue() const = 0;
     virtual bool IsRvalue() const = 0;
@@ -57,12 +57,12 @@ public:
     {
         return mNodeType;
     }
-    
+
     ASTNodeIndex GetNodeIndex() const
     {
         return mIndex;
     }
-    
+
     ASTDataType GetDataType() const
     {
         return mNodeDataType;
@@ -77,40 +77,40 @@ public:
     {
         mChilderen.emplace_back( child );
     }
-    
-    ASTNode * GetChild( size_t i ) const
+
+    ASTNode *GetChild( size_t i ) const
     {
         return mChilderen[i];
     }
-    
+
     void Print( const std::string &prefix ) const
     {
         const std::string name = this->GetNodeName();
-        const size_t nodeIndex = (size_t) GetNodeIndex();
-        const size_t nodeType = (size_t) GetNodeType();
-        
+        const size_t nodeIndex = ( size_t ) GetNodeIndex();
+        const size_t nodeType = ( size_t ) GetNodeType();
+
         std::cout << prefix << "[ " << name << ", " << nodeIndex << ", " << mStringID << " ]" << std::endl;
-        
-        for ( size_t i=0, iend=NumChilderen(); i < iend; ++i )
+
+        for ( size_t i = 0, iend = NumChilderen(); i < iend; ++i )
         {
             const ASTNode *child = GetChild( i );
-            
+
             child->Print( prefix + "  " );
         }
     }
 
 protected:
 
-    ASTNode( ASTDriver *, const ASTNodeIndex &index, 
-             const U32 &line, const std::string &file,  
+    ASTNode( ASTDriver *, const ASTNodeIndex &index,
+             const U32 &line, const std::string &file,
              const ASTNodeType &type, const std::string &stringID,
              const ASTDataType &dataType )
         : ASTSourceCompound( line , file ), mNodeType( type ), mStringID( stringID ),
-                                            mIndex( index ), mNodeDataType( dataType )
+          mIndex( index ), mNodeDataType( dataType )
     {
-        
+
     }
-   
+
 private:
 
     ASTNodeType mNodeType;

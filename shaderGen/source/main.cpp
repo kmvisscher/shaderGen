@@ -12,7 +12,7 @@ int main()
     /*
     ASTDriver driver;
     ASTFunction *function = driver.Create< ASTFunction >( 0, "TEST", ASTNode::ASTDataType::TypeComplex, "Foo"  );
-    
+
 
     ASTHub *dummy1 = driver.Create< ASTHub >(1, "TEST", "stuff");
 
@@ -26,7 +26,7 @@ int main()
     function->Print( "" );
     */
 
-    ZslLexer::ParseSource("../../test.zsl");
+    ZslLexer::ParseSource( "../../test-simple.zsl" );
 
     return 0;
 }

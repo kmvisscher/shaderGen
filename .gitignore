@@ -3,3 +3,6 @@
 *.sln
 bin/
 *.sdf
+shaderGen/.vs/*
+*.vcxproj.user
+*.opensdf

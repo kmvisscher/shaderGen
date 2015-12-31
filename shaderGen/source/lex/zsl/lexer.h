@@ -2,40 +2,19 @@
 #ifndef __ZSL_LEXER_H__
 #define __ZSL_LEXER_H__
 
-#include "ast/abstractSyntaxTree.h"
-
-#include "lex/zsl/tokenizer.h"
-
-#include <sstream>
 #include <string>
-#include <fstream>
+
+class ASTDriver;
 
 namespace ZslLexer
 {
-    void ProcessSourceFile(ASTDriver *driver, const std::string &file)
-    {
-        std::ifstream infile(file);
+    class Tokenizer;
 
-        std::string line;
-        U32 sourceLineIndex = 0;
-        while ( std::getline(infile, line) )
-        {
-            std::cout << line << std::endl;
+    void InterpetTokenStream( ASTDriver *driver,  const Tokenizer &tokens );
 
-            sourceLineIndex++;
-        }
-    }
+    void ProcessSourceFile( ASTDriver *driver, const std::string &file );
 
-
-    ASTDriver * ParseSource(const std::string &file)
-    {
-        // read file line by line
-        ASTDriver *driver = new ASTDriver;
-
-        ProcessSourceFile(driver, file);
-
-        return driver;
-    }
+    ASTDriver *ParseSource( const std::string &file );
 };
 
 #endif

@@ -29,6 +29,7 @@
 
 #include <boost/algorithm/string.hpp>
 #include <iostream>
+#include <stdlib.h>
 
 template<>
 std::string Util::ToString( const F32 &value )
@@ -102,6 +103,19 @@ U64 Util::FromString( const std::string &str )
     return std::stoull( str );
 }
 
+bool Util::IsNumeric( const std::string &str )
+{
+    for ( auto it = str.begin(), itend = str.end(); it != itend; ++it )
+    {
+        if ( !isdigit( *it ) && !( ( *it ) == '.' ) )
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 std::string Util::WStringToString( const std::wstring &wstr )
 {
     return std::string( wstr.begin(), wstr.end() );
@@ -163,7 +177,7 @@ std::vector< std::string > Util::StringSplit( const std::string &str, char sep, 
 
     //loop over all delimiter positions
     while ( ( pos = str.find( sep, prevPos + 1 ) ) != std::string::npos )
-    {   
+    {
         std::string token = str.substr( prevPos, pos - prevPos );
 
         if ( trim )
@@ -191,66 +205,78 @@ std::vector< std::string > Util::StringSplit( const std::string &str, char sep, 
 
 std::string Util::FromFlags( const U8 convFlags )
 {
-	std::string rstring;
-	
-	for ( U32 i=0; i < 8; ++i )
-	{
-		if ( convFlags & ( 1 << i ) )
-			
-			rstring += '1';
-		else
-			rstring += '0';
-		
-	}
-	
-	return rstring;
+    std::string rstring;
+
+    for ( U32 i = 0; i < 8; ++i )
+    {
+        if ( convFlags & ( 1 << i ) )
+
+        {
+            rstring += '1';
+        }
+        else
+        {
+            rstring += '0';
+        }
+
+    }
+
+    return rstring;
 }
 
 std::string Util::FromFlags( const U32 convFlags )
 {
-	std::string rstring;
-	
-	for ( U32 i=0; i < 32; ++i )
-	{
-		if ( convFlags & ( 1 << i ) )
-			
-			rstring += '1';
-		else
-			rstring += '0';
-		
-	}
-	
-	return rstring;
+    std::string rstring;
+
+    for ( U32 i = 0; i < 32; ++i )
+    {
+        if ( convFlags & ( 1 << i ) )
+
+        {
+            rstring += '1';
+        }
+        else
+        {
+            rstring += '0';
+        }
+
+    }
+
+    return rstring;
 }
 
 std::string Util::FromFlags( const U64 convFlags )
 {
-	std::string rstring;
-	
-	for ( U32 i=0; i < 64; ++i )
-	{
-		if ( convFlags & ( (U64)1 << i ) )
-			
-			rstring += '1';
-		else
-			rstring += '0';
-		
-	}
-	
-	return rstring;
+    std::string rstring;
+
+    for ( U32 i = 0; i < 64; ++i )
+    {
+        if ( convFlags & ( ( U64 )1 << i ) )
+
+        {
+            rstring += '1';
+        }
+        else
+        {
+            rstring += '0';
+        }
+
+    }
+
+    return rstring;
 }
 
 //http://stackoverflow.com/questions/109023/how-to-count-the-number-of-set-bits-in-a-32-bit-integer
 S32 BitCount( S32 i )
 {
-     i = i - ((i >> 1) & 0x55555555);
-     i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
-     return (((i + (i >> 4)) & 0x0F0F0F0F) * 0x01010101) >> 24;
+    i = i - ( ( i >> 1 ) & 0x55555555 );
+    i = ( i & 0x33333333 ) + ( ( i >> 2 ) & 0x33333333 );
+    return ( ( ( i + ( i >> 4 ) ) & 0x0F0F0F0F ) * 0x01010101 ) >> 24;
 }
 
 S32 Util::CountFlags( const U64 convFlags )
 {
-    S32 count1 = BitCount( (S32)convFlags );
-    S32 count2 = BitCount( (S32)(convFlags >> 32 ) );
-    return count1+count2;
+    S32 count1 = BitCount( ( S32 )convFlags );
+    S32 count2 = BitCount( ( S32 )( convFlags >> 32 ) );
+    return count1 + count2;
 }

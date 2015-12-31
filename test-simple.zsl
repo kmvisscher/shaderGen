@@ -1,0 +1,54 @@
+typedef float float3;
+
+float3 EvalBDRF( SurfaceParameters surface, LightParameters light )
+{
+	//
+    //  Microfacet Specular Cook-Torrance
+    //
+    //                D( h ) F( v, h ) G( l, v, h )
+    //    f( l, v ) = ____________________________
+    //                 4 ( dot( n, l ) dot( n, v )
+    //                 
+    //
+
+	float3 L = normalize( light.surfaceTolightDir );
+	float3 V = normalize( -surface.position );
+	float3 H = normalize( L + V );
+	float3 N = surface.normal;
+	
+	float NdotV = abs( dot( N, V ) ) + 1e-5f;
+	float NdotH = saturate( dot( N, H ) );
+	float NdotL = saturate( dot( N, L ) );
+	float LdotH = saturate( dot( L, H ) );
+	
+	float VdotH = saturate( dot( V, H ) );
+
+	if ( NdotL == 0 ) 
+		return float3( 0.0, 0.0, 0.0 ); 
+	
+	float alpha = surface.roughness;
+	float visLinAlpha = alpha * alpha;
+	
+	float3 f0 = surface.baseColor;
+	float  metal = surface.metallic;
+	
+	float3 F_conductor= F_schlick( f0, float3( 1.0, 1.0, 1.0 ), VdotH );
+	float3 F_dielec   = F_schlick( float3( 0.04, 0.04, 0.04 ), float3( 1.0, 1.0, 1.0 ), VdotH );
+	float  Vis        = SmithGGX( NdotL, NdotV, visLinAlpha );
+	float  D          = D_GGX( NdotH, visLinAlpha );
+	
+	float3 Fr_dielec    = D * F_dielec * Vis; 
+	float3 Fr_conductor = D * F_conductor * Vis; 
+	
+	float3 Fd = Fr_DisneyDiffuse( NdotV , NdotL , LdotH , visLinAlpha ) / PI ;
+	
+    float3 specular = ( 1.0f - metal ) * Fr_dielec + metal * Fr_conductor;
+	float3 diffuse  = ( 1.0f - metal ) * Fd * f0;
+
+	return ( diffuse + specular ) * NdotL * light.attenuation * light.lightIntensity * light.lightColor;
+}
+
+float3 main()
+{
+
+}

@@ -8,7 +8,7 @@
 // Dice
 //
 
-float3 F_schlick( in float3 f0, in float3 f90, in float u )
+float3 F_schlick( float3 f0, float3 f90, float u )
 {
 	//
     //  F( v, h ) =  F0 + ( 1.0 - F0 ) *  pow( 1.0f - HdotV,  5.0f )
@@ -30,7 +30,14 @@ float Fr_DisneyDiffuse ( float NdotV , float NdotL , float LdotH , float linearR
 	float energyFactor = lerp (1.0 , 1.0 / 1.51 , linearRoughness );
 	float fd90 = energyBias + 2.0 * LdotH * LdotH * linearRoughness ;
 	float3 f0 = float3 ( 1.0f , 1.0f , 1.0f );
-	float lightScatter = F_schlick( f0 , fd90 , NdotL ).r;
+	float lightScatter = F_schlick( f0 , fd90 , NdotL ).r; 
+										
+											/*
+	stuff that the multiline comment
+	should filter 
+	out
+	*/
+	
 	float viewScatter = F_schlick(f0 , fd90 , NdotV ).r;
 
 	return lightScatter * viewScatter * energyFactor ;
@@ -89,7 +96,7 @@ float D_GGX( float NdotH , float alpha )
 // End of Dice
 //
 
-float3 EvalBDRF( in SurfaceParameters surface, in LightParameters light )
+float3 EvalBDRF( SurfaceParameters surface, LightParameters light )
 {
 	//
     //  Microfacet Specular Cook-Torrance
