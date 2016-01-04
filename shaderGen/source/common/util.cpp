@@ -105,12 +105,32 @@ U64 Util::FromString( const std::string &str )
 
 bool Util::IsNumeric( const std::string &str )
 {
+    int numDots = 0;
+
     for ( auto it = str.begin(), itend = str.end(); it != itend; ++it )
     {
-        if ( !isdigit( *it ) && !( ( *it ) == '.' ) )
+        char ll = ( *it );
+
+        // test if signed
+        if ( ( ll == '-' )  && !( it == str.begin() ) )
         {
             return false;
         }
+
+        // test if fp
+        if ( !isdigit( *it ) && !( ll == '.' ) )
+        {
+            return false;
+        }
+        else
+        {
+            numDots++;
+        }
+    }
+
+    if ( numDots > 1 )
+    {
+        return false;
     }
 
     return true;

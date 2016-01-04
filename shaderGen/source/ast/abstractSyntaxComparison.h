@@ -38,25 +38,49 @@ public:
 
     enum ASTComparisonType
     {
+        Unknown,
         CmpLT,
         CmpLE,
         CmpEQ,
+        CmpNEQ,
         CmpGT,
         CmpGE
     };
 
-    ASTComparison( ASTDriver *driver, const ASTNodeIndex &index, const U32 &line, const std::string &file, 
-                   ASTComparisonType comptype, ASTNode * lhs, ASTNode *rhs ) :
-                   ASTNode(driver, index, line, file, ConstType(), "Comparison", ASTDataType::TypeUnknown), 
-                   mCompType( comptype ), mLhs(lhs), mRhs( rhs )
+    ASTComparison( ASTDriver *driver, const ASTNodeIndex &index, const U32 &line, const std::string &file ) :
+        ASTNode( driver, index, line, file, ConstType(), "Comparison", ASTDataType::TypeUnknown ),
+        mCompType( ASTComparisonType::Unknown )
     {
+        // Add a child node for the param 1
+        AddChild( driver->Create< ASTHub >( line, file, "DummyTarget" ) );
+
+        // Add a child node for the param 2
+        AddChild( driver->Create< ASTHub >( line, file, "DummyTarget" ) );
+    }
+
+    ASTComparisonType GetCompType() const
+    {
+        return mCompType;
+    }
+
+    void SetCompType( ASTComparisonType type )
+    {
+        mCompType = type;
+    }
+
+    void SetTarget1( ASTNode *target )
+    {
+        ModifyChild( 0, target );
+    }
+
+    void SetTarget2( ASTNode *target )
+    {
+        ModifyChild( 1, target );
     }
 
 private:
 
     ASTComparisonType mCompType;
-    ASTNode * mLhs;
-    ASTNode * mRhs;
 };
 
 #endif

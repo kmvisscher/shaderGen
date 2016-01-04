@@ -17,7 +17,6 @@ namespace ZslLexer
         enum TokenType
         {
             // Operators
-            Assignment,
             Equal,
             NotEqual,
             LessThan,
@@ -52,6 +51,7 @@ namespace ZslLexer
             Xor,
             LogicalAnd,
             LogicalOr,
+            Assignment,
             MulAssignment,
             DivAssignment,
             ModAssignment,
@@ -104,7 +104,6 @@ namespace ZslLexer
             True,
             Typedef,
             Union,
-            Virtual,
             Void,
             While,
         };
@@ -131,6 +130,8 @@ namespace ZslLexer
         bool Equals( const std::string &comp ) const;
         bool IsChar() const;
 
+        static std::string FromType( TokenType type );
+
     private:
 
         TokenType mTokenType;
@@ -138,6 +139,7 @@ namespace ZslLexer
         std::string mSourceFile;
         U32 mSourceLineIndex;
     };
+
 }
 
 #endif

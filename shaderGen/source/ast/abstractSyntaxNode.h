@@ -30,7 +30,8 @@ public:
         OpAssignmentExpression,         // X
         OpTernaryExpression,            // X
         OpTypeCaseExpression,           // X
-        OpLiteralExpression             // X
+        OpLiteralExpression,            // X
+        OpReference                     // X
     };
 
     enum ASTDataType
@@ -63,9 +64,24 @@ public:
         return mIndex;
     }
 
+    const std::string &GetStringID() const
+    {
+        return mStringID;
+    }
+
+    void SetStringID( const std::string &name )
+    {
+        mStringID = name;
+    }
+
     ASTDataType GetDataType() const
     {
         return mNodeDataType;
+    }
+
+    void SetDataType( ASTDataType dataType )
+    {
+        mNodeDataType = dataType;
     }
 
     size_t NumChilderen() const
@@ -78,10 +94,17 @@ public:
         mChilderen.emplace_back( child );
     }
 
+    void ModifyChild( size_t i, ASTNode *child )
+    {
+        mChilderen[i] = child;
+    }
+
     ASTNode *GetChild( size_t i ) const
     {
         return mChilderen[i];
     }
+
+
 
     void Print( const std::string &prefix ) const
     {

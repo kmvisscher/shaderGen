@@ -1,46 +1,674 @@
 #include "lexer.h"
 
 #include "common/util.h"
+#include "common/types.h"
 
 #include "ast/abstractSyntaxTree.h"
+#include "ast/abstractSyntaxLiteral.h"
+#include "ast/abstractSyntaxReference.h"
+#include "ast/abstractSyntaxUnary.h"
+#include "ast/abstractSyntaxBinaryExpression.h"
+#include "ast/abstractSyntaxComparison.h"
+#include "ast/abstractSyntaxAssignment.h"
 
 #include "lex/zsl/zslTokenizer.h"
 #include "lex/zsl/zslCompoundSection.h"
-#include "lex/zsl/zslRegex.h"
 
 #include <sstream>
 #include <fstream>
 #include <stack>
 
+
+void ZslLexer::HandleBlock( ASTDriver *driver, RegexNode &parent, const std::vector< RegexNode > &regexNodes )
+{
+    for ( auto it = regexNodes.begin(), itend = regexNodes.end(); it != itend; ++it )
+    {
+        parent.AddChild( *it );
+    }
+}
+
+void ZslLexer::HandleLiteral( ASTDriver *driver, RegexNode &parent, const std::vector< RegexNode > &regexNodes )
+{
+    ASTLiteral *literal = ( ASTLiteral * )parent.GetNodeLink();
+    const Token *token = regexNodes[0].GetTokenLink();
+
+    const std::string &valueString = token->GetString();
+
+    if ( valueString.find( '.' ) != std::string::npos )
+    {
+        literal->SetData( token->GetValue<F32>() );
+    }
+    else if ( valueString.find( '-' ) != std::string::npos )
+    {
+        literal->SetData( token->GetValue<S32>() );
+    }
+    else
+    {
+        literal->SetData( token->GetValue<U32>() );
+    }
+}
+
+void ZslLexer::HandleReference( ASTDriver *driver, RegexNode &parent, const std::vector< RegexNode > &regexNodes )
+{
+    ASTReference *reference = ( ASTReference * )parent.GetNodeLink();
+    const Token *token = regexNodes[0].GetTokenLink();
+
+    const std::string &valueString = token->GetString();
+
+    reference->SetStringID( valueString );
+}
+
+void ZslLexer::ConvertUnary( ASTDriver *driver, RegexNode &parent, const std::vector< RegexNode > &regexNodes )
+{
+    // only performs a conversion step,
+    // no target is assigned
+    const Token *token = regexNodes[0].GetTokenLink();
+
+    ASTUnary::ASTUnaryType type = ASTUnary::Unknown;
+
+    switch ( token->GetType() )
+    {
+    case Token::TokenType::Increment:
+        type = ASTUnary::Inc;
+        break;
+
+    case Token::TokenType::Decrement:
+        type = ASTUnary::Decr;
+        break;
+
+    case Token::TokenType::Not:
+        type = ASTUnary::Not;
+        break;
+
+    case Token::TokenType::Complement:
+        type = ASTUnary::Complement;
+        break;
+
+    case Token::TokenType::Plus:
+        type = ASTUnary::Plus;
+        break;
+
+    case Token::TokenType::Minus:
+        type = ASTUnary::Minus;
+        break;
+
+    default:
+        driver->ReportComment( ASTComment( ASTComment::Error, token->SourceLineOrigin(),
+                                           Util::Format( "Unable to convert token type:%u to unary", ( U32 )token->GetType() ) ) );
+        break;
+    }
+
+    ASTUnary *unary = ( ASTUnary * )parent.GetNodeLink();
+    unary->SetUnaryType( type );
+}
+
+void ZslLexer::ConvertBinary( ASTDriver *driver, RegexNode &parent, const std::vector< RegexNode > &regexNodes )
+{
+    // only performs a conversion step,
+    // no target is assigned
+    const Token *token = regexNodes[0].GetTokenLink();
+
+    ASTBinary::ASTBinaryType type = ASTBinary::Unknown;
+
+    switch ( token->GetType() )
+    {
+    case Token::TokenType::And:
+        type = ASTBinary::ASTBinaryType::ExprAnd;
+        break;
+
+    case Token::TokenType::Div:
+        type = ASTBinary::ASTBinaryType::ExprDiv;
+        break;
+
+    case Token::TokenType::Mul:
+        type = ASTBinary::ASTBinaryType::ExprMul;
+        break;
+
+    case Token::TokenType::Or:
+        type = ASTBinary::ASTBinaryType::ExprOr;
+        break;
+
+    case Token::TokenType::Xor:
+        type = ASTBinary::ASTBinaryType::ExprXor;
+        break;
+
+    default:
+        driver->ReportComment( ASTComment( ASTComment::Error, token->SourceLineOrigin(),
+                                           Util::Format( "Unable to convert token type:%u to binary", ( U32 )token->GetType() ) ) );
+        break;
+    }
+
+    ASTBinary *binary = ( ASTBinary * )parent.GetNodeLink();
+    binary->SetBinaryType( type );
+}
+
+void ZslLexer::ConvertComparison( ASTDriver *driver, RegexNode &parent, const std::vector< RegexNode > &regexNodes )
+{
+    // only performs a conversion step,
+    // no target is assigned
+    const Token *token = regexNodes[0].GetTokenLink();
+
+    ASTComparison::ASTComparisonType type = ASTComparison::Unknown;
+
+    switch ( token->GetType() )
+    {
+    case Token::TokenType::GreaterThan:
+        type = ASTComparison::ASTComparisonType::CmpGT;
+        break;
+
+    case Token::TokenType::GreaterOrEqual:
+        type = ASTComparison::ASTComparisonType::CmpGE;
+        break;
+
+    case Token::TokenType::Equal:
+        type = ASTComparison::ASTComparisonType::CmpEQ;
+        break;
+
+    case Token::TokenType::NotEqual:
+        type = ASTComparison::ASTComparisonType::CmpNEQ;
+        break;
+
+    case Token::TokenType::LessThan:
+        type = ASTComparison::ASTComparisonType::CmpLT;
+        break;
+
+    case Token::TokenType::LessOrEqual:
+        type = ASTComparison::ASTComparisonType::CmpLE;
+        break;
+
+    default:
+        driver->ReportComment( ASTComment( ASTComment::Error, token->SourceLineOrigin(),
+                                           Util::Format( "Unable to convert token type:%u to comparison", ( U32 )token->GetType() ) ) );
+        break;
+    }
+
+    ASTComparison *binary = ( ASTComparison * )parent.GetNodeLink();
+    binary->SetCompType( type );
+}
+
+void ZslLexer::ConvertAssignment( ASTDriver *driver, RegexNode &parent, const std::vector< RegexNode > &regexNodes )
+{
+    // only performs a conversion step,
+    // no target is assigned
+    const Token *token = regexNodes[0].GetTokenLink();
+
+    ASTAssignment::ASTAssignmentType type = ASTAssignment::Unknown;
+
+    switch ( token->GetType() )
+    {
+    case Token::TokenType::Assignment:
+        type = ASTAssignment::ASTAssignmentType::Assignment;
+        break;
+
+    case Token::TokenType::AddAssignment:
+        type = ASTAssignment::ASTAssignmentType::SumCompound;
+        break;
+
+    case Token::TokenType::SubAssignment:
+        type = ASTAssignment::ASTAssignmentType::DifferenceCompound;
+        break;
+
+    case Token::TokenType::MulAssignment:
+        type = ASTAssignment::ASTAssignmentType::ProductCompound;
+        break;
+
+    case Token::TokenType::DivAssignment:
+        type = ASTAssignment::ASTAssignmentType::QuotientCompound;
+        break;
+
+    case Token::TokenType::ModAssignment:
+        type = ASTAssignment::ASTAssignmentType::RemainderCompound;
+        break;
+
+    case Token::TokenType::LeftShiftAssignment:
+        type = ASTAssignment::ASTAssignmentType::LeftShiftCompound;
+        break;
+
+    case Token::TokenType::RightShiftAssignment:
+        type = ASTAssignment::ASTAssignmentType::RightShiftCompound;
+        break;
+
+    case Token::TokenType::BitwiseANDAssignment:
+        type = ASTAssignment::ASTAssignmentType::BitwiseAndCompound;
+        break;
+
+    case Token::TokenType::BitwiseORAssingment:
+        type = ASTAssignment::ASTAssignmentType::BitwiseOrCompound;
+        break;
+
+    case Token::TokenType::BitwiseXORAssingment:
+        type = ASTAssignment::ASTAssignmentType::BitwiseXorCompound;
+        break;
+
+    default:
+        driver->ReportComment( ASTComment( ASTComment::Error, token->SourceLineOrigin(),
+                                           Util::Format( "Unable to convert token type:%u to assignment", ( U32 )token->GetType() ) ) );
+        break;
+    }
+
+    ASTAssignment *assignment = ( ASTAssignment * )parent.GetNodeLink();
+    assignment->SetAssignmentType( type );
+}
+
+ASTNode *ZslLexer::CreateBlock( ASTDriver *driver, U32 sourceLine, const std::string &sourceFile )
+{
+    return driver->Create< ASTHub >( sourceLine, sourceFile, "CodeBlock" );
+}
+
+ASTNode *ZslLexer::CreateLiteral( ASTDriver *driver, U32 sourceLine, const std::string &sourceFile )
+{
+    return driver->Create< ASTLiteral >( sourceLine, sourceFile );
+}
+
+ASTNode *ZslLexer::CreateReference( ASTDriver *driver, U32 sourceLine, const std::string &sourceFile )
+{
+    return driver->Create< ASTReference >( sourceLine, sourceFile );
+}
+
+ASTNode *ZslLexer::CreateUnary( ASTDriver *driver, U32 sourceLine, const std::string &sourceFile )
+{
+    return driver->Create< ASTUnary >( sourceLine, sourceFile );
+}
+
+ASTNode *ZslLexer::CreateBinary( ASTDriver *driver, U32 sourceLine, const std::string &sourceFile )
+{
+    return driver->Create< ASTBinary >( sourceLine, sourceFile );
+}
+
+ASTNode *ZslLexer::CreateComparison( ASTDriver *driver, U32 sourceLine, const std::string &sourceFile )
+{
+    return driver->Create< ASTComparison >( sourceLine, sourceFile );
+}
+
+ASTNode *ZslLexer::CreateAssignment( ASTDriver *driver, U32 sourceLine, const std::string &sourceFile )
+{
+    return driver->Create< ASTAssignment >( sourceLine, sourceFile );
+}
+
+
+void ZslLexer::InterpetGroup0( ASTDriver *driver, RegexStream &regexStream )
+{
+
+
+}
+
+// Initial conversion
+/*
+void ZslLexer::InterpetGroup0( ASTDriver *driver, RegexStream &regexStream )
+{
+    RegexGroup regexGroup0( RegexGroup::None,
+    {
+        // numeric
+        RegularExpression( "EXPR",
+        {
+            ExpressionBlock( {
+                RegexStatement( {  Token::Numeric } )
+            },
+            &HandleLiteral )
+        }, &CreateLiteral ),
+        // Reference
+        RegularExpression( "IDENTIFIER",
+        {
+            ExpressionBlock( {
+                RegexStatement( {Token::Identifier } )
+            },
+            &HandleReference )
+        }, &CreateReference ),
+
+    } );
+
+    regexStream.Digest( driver, regexGroup0 );
+}
+
+
+void ZslLexer::InterpetGroup1( ASTDriver *driver, RegexStream &regexStream )
+{
+    RegexGroup regexGroup1( RegexGroup::None,
+    {
+        // block
+        RegularExpression( "BLOCK",
+        {
+            ExpressionBlock( {
+                RegexStatement( { Token::LeftBracket } )
+
+            },
+            &HandleDummy ),
+            ExpressionBlock( {
+                RegexStatement( {
+                    "IDENTIFIER",
+                    "EXPR",
+                    "BLOCK"
+                }, {
+                    Token::LeftParenthesis,
+                    Token::RightParenthesis,
+                    Token::Numeric,
+                    Token::Dot,
+                    Token::Comma,
+                    Token::Semicolon,
+                    Token::Colon,
+                    Token::LeftMeta,
+                    Token::RightMeta,
+                    Token::LeftSquareBracket,
+                    Token::RightSquareBracket,
+                    Token::Increment,
+                    Token::Decrement,
+                    Token::Complement,
+                    Token::LeftShift,
+                    Token::RightShift,
+                    Token::And,
+                    Token::Or,
+                    Token::Xor,
+                    Token::LogicalAnd,
+                    Token::LogicalOr,
+                    Token::Increment,
+                    Token::Decrement,
+                    Token::Not,
+                    Token::Complement,
+                    Token::Plus,
+                    Token::Minus,
+                    Token::Div,
+                    Token::Mul,
+                    Token::Modulo,
+                    Token::LessThan,
+                    Token::LessOrEqual,
+                    Token::GreaterThan,
+                    Token::GreaterOrEqual,
+                    Token::Equal,
+                    Token::NotEqual,
+                    Token::Assignment,
+                    Token::MulAssignment,
+                    Token::DivAssignment,
+                    Token::ModAssignment,
+                    Token::AddAssignment,
+                    Token::SubAssignment,
+                    Token::LeftShiftAssignment,
+                    Token::RightShiftAssignment,
+                    Token::BitwiseANDAssignment,
+                    Token::BitwiseORAssingment,
+                    Token::BitwiseXORAssingment,
+                    Token::Class,
+                    Token::Alignas,
+                    Token::Bool,
+                    Token::Break,
+                    Token::Case,
+                    Token::Const,
+                    Token::Continue,
+                    Token::Default,
+                    Token::Do,
+                    Token::Double,
+                    Token::Else,
+                    Token::Enum,
+                    Token::Explicit,
+                    Token::False,
+                    Token::Float,
+                    Token::For,
+                    Token::If,
+                    Token::Inline,
+                    Token::Int,
+                    Token::Uint,
+                    Token::Namespace,
+                    Token::Private,
+                    Token::Protected,
+                    Token::Public,
+                    Token::Register,
+                    Token::Return,
+                    Token::Static,
+                    Token::Struct,
+                    Token::Switch,
+                    Token::Template,
+                    Token::Thread_local,
+                    Token::True,
+                    Token::Typedef,
+                    Token::Union,
+                    Token::Void,
+                    Token::While
+                }, RegexAttributes::Optional )
+            },
+            &HandleBlock, RegexAttributes::Repeating ),
+            ExpressionBlock( {
+                RegexStatement( {  Token::RightBracket } )
+
+            },
+            &HandleDummy )
+        }, &CreateBlock )
+    } );
+
+    regexStream.Digest( driver, regexGroup1 );
+}
+
+void ZslLexer::InterpetGroup2( ASTDriver *driver, RegexStream &regexStream )
+{
+    RegexGroup regexGroup2( RegexGroup::LeftToRight,
+    {
+        // block
+        RegularExpression( "SCOPED_EXPR",
+        {
+            ExpressionBlock( {
+                RegexStatement( { Token::LeftParenthesis } )
+
+            },
+            &HandleDummy ),
+            ExpressionBlock( {
+                RegexStatement( {
+                    "IDENTIFIER",
+                    "EXPR"
+                }, {
+                    Token::Numeric,
+                    Token::Dot,
+                    //Token::Comma,
+                    Token::LeftSquareBracket,
+                    Token::RightSquareBracket,
+                    Token::Increment,
+                    Token::Decrement,
+                    Token::Complement,
+                    Token::LeftShift,
+                    Token::RightShift,
+                    Token::And,
+                    Token::Or,
+                    Token::Xor,
+                    Token::LogicalAnd,
+                    Token::LogicalOr,
+                    Token::Increment,
+                    Token::Decrement,
+                    Token::Not,
+                    Token::Plus,
+                    Token::Minus,
+                    Token::Div,
+                    Token::Mul,
+                    Token::Modulo,
+                    Token::LessThan,
+                    Token::LessOrEqual,
+                    Token::GreaterThan,
+                    Token::GreaterOrEqual,
+                    Token::Equal,
+                    Token::NotEqual
+                }, RegexAttributes::Repeating )
+            },
+            &HandleBlock ),
+            ExpressionBlock( {
+                RegexStatement( { Token::RightParenthesis } )
+
+            },
+            &HandleDummy )
+        }, &CreateBlock )
+    } );
+
+    regexStream.Digest( driver, regexGroup2 );
+
+}
+
+void ZslLexer::InterpetGroup3( ASTDriver *driver, RegexStream &regexStream )
+{
+
+    RegexGroup regexGroup3( RegexGroup::LeftToRight,
+    {
+        // block
+        RegularExpression( "FUNCTION_CALL",
+        {
+            ExpressionBlock( {
+                RegexStatement( { "IDENTIFIER" } )
+
+            }, &HandleDummy ),
+            ExpressionBlock( {
+                RegexStatement( {Token::LeftParenthesis } )
+
+            }, &HandleDummy ),
+            ExpressionBlock( {
+                RegexStatement( {
+                    "IDENTIFIER",
+                    "EXPR",
+                }, {
+                    Token::Numeric,
+                    Token::Dot,
+                    Token::LeftSquareBracket,
+                    Token::RightSquareBracket,
+                    Token::Increment,
+                    Token::Decrement,
+                    Token::Complement,
+                    Token::LeftShift,
+                    Token::RightShift,
+                    Token::And,
+                    Token::Or,
+                    Token::Xor,
+                    Token::LogicalAnd,
+                    Token::LogicalOr,
+                    Token::Increment,
+                    Token::Decrement,
+                    Token::Not,
+                    Token::Plus,
+                    Token::Minus,
+                    Token::Div,
+                    Token::Mul,
+                    Token::Modulo,
+                    Token::LessThan,
+                    Token::LessOrEqual,
+                    Token::GreaterThan,
+                    Token::GreaterOrEqual,
+                    Token::Equal,
+                    Token::NotEqual
+                }, RegexAttributes::Repeating ),
+                RegexStatement( { Token::Comma }, RegexAttributes::Optional )
+            }, &HandleDummy, RegexAttributes::Repeating ),
+            ExpressionBlock( {
+                RegexStatement( { Token::RightParenthesis } )
+            }, &HandleDummy )
+        }, &CreateBlock ),
+        RegularExpression( "FUNCTION_CALL",
+        {
+            ExpressionBlock( {
+                RegexStatement( { "IDENTIFIER" } )
+            }, &HandleDummy ),
+            ExpressionBlock( {
+                RegexStatement( { "SCOPED_EXPR" } )
+            }, &HandleDummy ),
+        }, &CreateBlock ),
+        RegularExpression( "FUNCTION_CALL",
+        {
+            ExpressionBlock( {
+                RegexStatement( { "IDENTIFIER" } )
+            }, &HandleDummy ),
+            ExpressionBlock( {
+                RegexStatement( { Token::LeftParenthesis } )
+            }, &HandleDummy ),
+            ExpressionBlock( {
+                RegexStatement( { Token::RightParenthesis } )
+            }, &HandleDummy ),
+        }, &CreateBlock ),
+        RegularExpression( "SCOPED_EXPR",
+        {
+            ExpressionBlock( {
+                RegexStatement( {
+                    "IDENTIFIER",
+                    "EXPR",
+                    "SCOPED_EXPR",
+                    "FUNCTION_CALL"
+                } )
+            }, &HandleDummy ),
+            ExpressionBlock( {
+                RegexStatement( {
+                    Token::LeftSquareBracket
+                } )
+            }, &HandleDummy ),
+            ExpressionBlock( {
+
+                RegexStatement( {
+                    "IDENTIFIER",
+                    "SCOPED_EXPR",
+                    "FUNCTION_CALL",
+                    "EXPR",
+                }, {
+                    Token::Numeric,
+                    Token::Dot,
+                    Token::Increment,
+                    Token::Decrement,
+                    Token::Complement,
+                    Token::LeftShift,
+                    Token::RightShift,
+                    Token::And,
+                    Token::Or,
+                    Token::Xor,
+                    Token::LogicalAnd,
+                    Token::LogicalOr,
+                    Token::Increment,
+                    Token::Decrement,
+                    Token::Not,
+                    Token::Plus,
+                    Token::Minus,
+                    Token::Div,
+                    Token::Mul,
+                    Token::Modulo,
+                    Token::LessThan,
+                    Token::LessOrEqual,
+                    Token::GreaterThan,
+                    Token::GreaterOrEqual,
+                    Token::Equal,
+                    Token::NotEqual
+                }, RegexAttributes::Repeating ),
+
+            }, &HandleDummy ),
+            ExpressionBlock( {
+                RegexStatement( {
+                    Token::RightSquareBracket
+                } )
+            }, &HandleDummy ),
+        }, &CreateBlock ),
+
+        RegularExpression( "UNARY_PLUSMINUS",
+        {
+            ExpressionBlock( {
+                RegexStatement( {
+                    Token::Plus,
+                    Token::Minus
+                } )
+            }, &HandleDummy ),
+
+            ExpressionBlock( {
+                RegexStatement( {
+                    "IDENTIFIER",
+                    "EXPR",
+                    "SCOPED_EXPR",
+                    "FUNCTION_CALL"
+                } )
+            }, &HandleDummy ),
+        }, &CreateBlock ),
+
+    } );
+
+    regexStream.Digest( driver, regexGroup3 );
+}
+*/
+
 void ZslLexer::InterpetTokenStream( ASTDriver *driver, const Tokenizer &tokens )
 {
-    size_t sorigin = 0;
+    RegexStream regexStream( tokens );
 
-    ZslRegexStream regexStream( tokens );
+    //InterpetGroup0( driver, regexStream );
 
-    /*
-    for ( auto it = tokens.Begin(), itend = tokens.End(); it != itend; ++it )
-    {
-        if ( HandleCompoundSection( driver, it ) )
-        {
-            continue;
-        }
-        //could not make sense out of this token, meaning that we have a problem
-        else
-        {
+    //InterpetGroup1( driver, regexStream );
 
-            if ( it->SourceLineOrigin() != sorigin )
-            {
-                std::cout << std::endl;
+    //InterpetGroup2( driver, regexStream );
 
-                sorigin = it->SourceLineOrigin();
-            }
-
-            std::cout << "[" << it->GetString() << "]   ";
-
-        }
-    }
-    */
+    //InterpetGroup3( driver, regexStream );
 
     // check for parsing errors
     if ( !driver->DriverIsValid() )
@@ -126,6 +754,7 @@ void ZslLexer::ProcessSourceFile( ASTDriver *driver, const std::string &file )
     typeMap["alignas"] = Token::TokenType::Alignas;
     typeMap["bool"] = Token::TokenType::Bool;
     typeMap["break"] = Token::TokenType::Break;
+
     typeMap["case"] = Token::TokenType::Case;
     typeMap["const"] = Token::TokenType::Const;
     typeMap["continue"] = Token::TokenType::Continue;
@@ -138,8 +767,8 @@ void ZslLexer::ProcessSourceFile( ASTDriver *driver, const std::string &file )
     typeMap["extern"] = Token::TokenType::Extern;
     typeMap["false"] = Token::TokenType::False;
     typeMap["float"] = Token::TokenType::Float;
-    typeMap["for"] = Token::TokenType::For;
-    typeMap["if"] = Token::TokenType::If;
+    typeMap["for "] = Token::TokenType::For;
+    typeMap["if "] = Token::TokenType::If;
     typeMap["inline"] = Token::TokenType::Inline;
     typeMap["int"] = Token::TokenType::Int;
     typeMap["uint"] = Token::TokenType::Uint;
@@ -151,15 +780,14 @@ void ZslLexer::ProcessSourceFile( ASTDriver *driver, const std::string &file )
     typeMap["return"] = Token::TokenType::Return;
     typeMap["static"] = Token::TokenType::Static;
     typeMap["struct"] = Token::TokenType::Struct;
-    typeMap["switch"] = Token::TokenType::Switch;
+    typeMap["switch "] = Token::TokenType::Switch;
     typeMap["template"] = Token::TokenType::Template;
     typeMap["thread_local"] = Token::TokenType::Thread_local;
     typeMap["true"] = Token::TokenType::True;
     typeMap["typedef"] = Token::TokenType::Typedef;
     typeMap["union"] = Token::TokenType::Union;
-    typeMap["virtual"] = Token::TokenType::Virtual;
     typeMap["void"] = Token::TokenType::Void;
-    typeMap["while"] = Token::TokenType::While;
+    typeMap["while "] = Token::TokenType::While;
 
     // Then divide out all the special chars so that they are all in their own tokens
     tokenStream.SubdivideTokens( "!@#%$^&*()-+={}[]|\"\':;<>?/~`,", typeMap );
@@ -181,114 +809,3 @@ ASTDriver *ZslLexer::ParseSource( const std::string &file )
 
     return driver;
 }
-
-
-/*
-// Group 1
-typeMap["::"] = { Token::TokenType::ScopeResolution, 1, Token::TokenType::None };
-
-// Group 2
-typeMap["."] = { Token::TokenType::MemberSelection, 2, Token::TokenType::LeftToRight };
-typeMap["["] = { Token::TokenType::ArraySubscriptStart, 2, Token::TokenType::LeftToRight };
-typeMap["]"] = { Token::TokenType::ArraySubscriptEnd, 2, Token::TokenType::LeftToRight };
-typeMap["("] = { Token::TokenType::FunctionCallStart, 2, Token::TokenType::LeftToRight };
-typeMap[")"] = { Token::TokenType::FunctionCallEnd, 2, Token::TokenType::LeftToRight };
-typeMap["EXP++"] = { Token::TokenType::PostIncrement, 2, Token::TokenType::LeftToRight };
-typeMap["EXP--"] = { Token::TokenType::PostDecrement, 2, Token::TokenType::LeftToRight };
-
-// Group 3
-typeMap["++EXP"] = Token::TokenType( Token::TokenType::PreIncrement, 3, Token::TokenType::RightToLeft );
-typeMap["--EXP"] = Token::TokenType( Token::TokenType::PreDecrement, 3, Token::TokenType::RightToLeft );
-typeMap["~"] = Token::TokenType( Token::TokenType::Complement, 3, Token::TokenType::RightToLeft );
-typeMap["!"] = Token::TokenType( Token::TokenType::LogicalNot, 3, Token::TokenType::RightToLeft );
-typeMap["-EXP"] = Token::TokenType( Token::TokenType::UnaryNegation, 3, Token::TokenType::RightToLeft );
-typeMap["+EXP"] = Token::TokenType( Token::TokenType::UnaryPlus, 3, Token::TokenType::RightToLeft );
-typeMap["-EXP"] = Token::TokenType( Token::TokenType::UnaryNegation, 3, Token::TokenType::RightToLeft );
-typeMap["+EXP"] = Token::TokenType( Token::TokenType::UnaryPlus, 3, Token::TokenType::RightToLeft );
-
-typeMap["EXP*EXP"] = { Token::TokenType::Multiplication, 5, Token::TokenType::LeftToRight };
-typeMap["EXP/EXP"] = { Token::TokenType::Division, 6, Token::TokenType::LeftToRight };
-typeMap["EXP%EXP"] = { Token::TokenType::Modulus, 6, Token::TokenType::LeftToRight };
-*/
-
-/*
-
-Group 5 precedence, left to right associativity
-Multiplication
-*
-Division
-/
-Modulus
-%
-Group 6 precedence, left to right associativity
-Addition
-+
-Subtraction
-–
-Group 7 precedence, left to right associativity
-Left shift
-<<
-Right shift
->>
-Group 8 precedence, left to right associativity
-Less than
-<
-Greater than
->
-Less than or equal to
-<=
-Greater than or equal to
->=
-Group 9 precedence, left to right associativity
-Equality
-==
-Inequality
-!=
-Group 10 precedence left to right associativity
-Bitwise AND
-&
-Group 11 precedence, left to right associativity
-Bitwise exclusive OR
-^
-Group 12 precedence, left to right associativity
-Bitwise inclusive OR
-|
-Group 13 precedence, left to right associativity
-Logical AND
-&&
-Group 14 precedence, left to right associativity
-Logical OR
-||
-Group 15 precedence, right to left associativity
-Conditional
-? :
-Group 16 precedence, right to left associativity
-Assignment
-=
-Multiplication assignment
-*=
-Division assignment
-/=
-Modulus assignment
-%=
-Addition assignment
-+=
-Subtraction assignment
-– =
-Left - shift assignment
-<<=
-Right - shift assignment
->>=
-Bitwise AND assignment
-&=
-Bitwise inclusive OR assignment
-|=
-Bitwise exclusive OR assignment
-^=
-Group 17 precedence, right to left associativity
-throw expression
-throw
-Group 18 precedence, left to right associativity
-Comma
-,
-*/

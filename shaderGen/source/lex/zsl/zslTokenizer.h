@@ -42,6 +42,7 @@ namespace ZslLexer
         std::vector< Token > mBuffer;
         std::string mSourceFile;
     };
+
 }
 
 #endif

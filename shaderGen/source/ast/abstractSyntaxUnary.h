@@ -37,23 +37,43 @@ public:
 
     enum ASTUnaryType
     {
-        IncPre,
+        Unknown,
+        Inc,
         IncPost,
-        DecrPre,
+        Decr,
         DecrPost,
         Complement,
-        Negation
+        Not,
+        Plus,
+        Minus
     };
 
-    ASTUnary(ASTDriver *driver, const ASTNodeIndex &index, const U32 &line, const std::string &file, ASTUnaryType unType, ASTNode *target) :
-        ASTNode(driver, index, line, file, ConstType(), "UnaryExpression", ASTDataType::TypeUnknown), mUnaryType(unType), mTarget(target)
+    ASTUnary( ASTDriver *driver, const ASTNodeIndex &index, const U32 &line, const std::string &file ) :
+        ASTNode( driver, index, line, file, ConstType(), "UnaryExpression", ASTDataType::TypeUnknown ),
+        mUnaryType( ASTUnaryType::Unknown )
     {
+        // Add a child node for the parameters
+        AddChild( driver->Create< ASTHub >( line, file, "DummyTarget" ) );
+    }
+
+    ASTUnaryType GetUnaryType() const
+    {
+        return mUnaryType;
+    }
+
+    void SetUnaryType( ASTUnaryType type )
+    {
+        mUnaryType = type;
+    }
+
+    void SetTarget( ASTNode *target )
+    {
+        ModifyChild( 0, target );
     }
 
 private:
 
     ASTUnaryType mUnaryType;
-    ASTNode * mTarget;
 };
 
 #endif

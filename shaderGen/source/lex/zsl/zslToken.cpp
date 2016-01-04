@@ -18,6 +18,11 @@ bool ZslLexer::Token::IsChar() const
     return Size() == 1;
 }
 
+std::string ZslLexer::Token::FromType( TokenType type )
+{
+    return Util::Format( "type:%u", ( U32 )type );
+}
+
 void ZslLexer::Token::SetType( const TokenType &type )
 {
     mTokenType = type;

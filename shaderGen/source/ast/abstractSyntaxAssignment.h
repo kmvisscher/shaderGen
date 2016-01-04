@@ -35,17 +35,55 @@ public:
         return false;
     }
 
-    ASTAssignment( ASTDriver *driver, const ASTNodeIndex &index, const U32 &line, const std::string &file,
-                   ASTNode *rhs1, ASTNode *rhs2) :
-                   ASTNode(driver, index, line, file, ConstType(), "Assignment", ASTDataType::TypeUnknown), 
-                   mRhs1(rhs1), mRhs2(rhs2)
+    enum ASTAssignmentType
     {
+        Unknown,
+        Assignment,
+        SumCompound,
+        DifferenceCompound,
+        ProductCompound,
+        QuotientCompound,
+        RemainderCompound,
+        LeftShiftCompound,
+        RightShiftCompound,
+        BitwiseAndCompound,
+        BitwiseOrCompound,
+        BitwiseXorCompound
+    };
+
+    ASTAssignment( ASTDriver *driver, const ASTNodeIndex &index, const U32 &line, const std::string &file ) :
+        ASTNode( driver, index, line, file, ConstType(), "Assignment", ASTDataType::TypeUnknown )
+    {
+        // Add a child node for the param 1
+        AddChild( driver->Create< ASTHub >( line, file, "DummyTarget" ) );
+
+        // Add a child node for the param 2
+        AddChild( driver->Create< ASTHub >( line, file, "DummyTarget" ) );
+    }
+
+    ASTAssignmentType GetAssignmentType() const
+    {
+        return mType;
+    }
+
+    void SetAssignmentType( ASTAssignmentType type )
+    {
+        mType = type;
+    }
+
+    void SetTarget1( ASTNode *target )
+    {
+        ModifyChild( 0, target );
+    }
+
+    void SetTarget2( ASTNode *target )
+    {
+        ModifyChild( 1, target );
     }
 
 private:
 
-    ASTNode * mRhs1;
-    ASTNode * mRhs2;
+    ASTAssignmentType mType;
 };
 
 #endif

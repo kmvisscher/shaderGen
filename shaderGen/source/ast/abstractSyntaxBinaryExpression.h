@@ -6,7 +6,7 @@
 #include "abstractSyntaxTree.h"
 #include "abstractSyntaxHub.h"
 
-class ASTBinaryExpression : public ASTNode
+class ASTBinary : public ASTNode
 {
 public:
 
@@ -35,8 +35,9 @@ public:
         return true;
     }
 
-    enum ASTBinaryExpr
+    enum ASTBinaryType
     {
+        Unknown,
         ExprAdd,
         ExprSubtract,
         ExprMul,
@@ -46,17 +47,40 @@ public:
         ExprXor
     };
 
-    ASTBinaryExpression(ASTDriver *driver, const ASTNodeIndex &index, const U32 &line, const std::string &file, 
-                        ASTBinaryExpr exprType, ASTNode *rhs1, ASTNode *rhs2) :
-        ASTNode(driver, index, line, file, ConstType(), "BinaryExpression", ASTDataType::TypeUnknown), mExprType(exprType), mRhs1(rhs1), mRhs2(rhs2)
+    ASTBinary( ASTDriver *driver, const ASTNodeIndex &index, const U32 &line, const std::string &file ) :
+        ASTNode( driver, index, line, file, ConstType(), "BinaryExpression", ASTDataType::TypeUnknown ),
+        mBinaryType( ASTBinaryType::Unknown )
     {
+        // Add a child node for the param 1
+        AddChild( driver->Create< ASTHub >( line, file, "DummyTarget" ) );
+
+        // Add a child node for the param 2
+        AddChild( driver->Create< ASTHub >( line, file, "DummyTarget" ) );
+    }
+
+    ASTBinaryType GetBinaryType() const
+    {
+        return mBinaryType;
+    }
+
+    void SetBinaryType( ASTBinaryType type )
+    {
+        mBinaryType = type;
+    }
+
+    void SetTarget1( ASTNode *target )
+    {
+        ModifyChild( 0, target );
+    }
+
+    void SetTarget2( ASTNode *target )
+    {
+        ModifyChild( 1, target );
     }
 
 private:
 
-    ASTBinaryExpr mExprType;
-    ASTNode * mRhs1;
-    ASTNode * mRhs2;
+    ASTBinaryType mBinaryType;
 };
 
 #endif
