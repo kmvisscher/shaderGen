@@ -87,7 +87,7 @@ solution "ShaderGen"
             }   
         
         files { 
-            root .. "extern/boost/source/**.cpp"
+            root .. "extern/boost/libs/*/src/**.cpp"
             } 
 
     project "StaticShaderCompiler"
